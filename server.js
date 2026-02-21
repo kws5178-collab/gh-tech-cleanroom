@@ -8,62 +8,59 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = 3001;
+// Render uses process.env.PORT
+const port = process.env.PORT || 3001;
 
 // Middleware
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Logging
-const logError = (msg) => {
-    const logPath = path.join(__dirname, 'server_error.log');
-    const timestamp = new Date().toISOString();
-    fs.appendFileSync(logPath, `[${timestamp}] ${msg}\n`);
-    console.error(msg);
-};
-
-// Data File Path
-const DATA_FILE = path.join(__dirname, 'src', 'data', 'processes.json');
+// Data File Path - Consider both local and Render Disk environments
+const DATA_FILE = fs.existsSync('/opt/render/project/src/src/data/processes.json')
+    ? '/opt/render/project/src/src/data/processes.json'
+    : path.join(__dirname, 'src', 'data', 'processes.json');
 
 // Serve static files from the Vite build directory
-app.use(express.static(path.join(__dirname, 'dist')));
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath));
 
-// GET
+// API: GET
 app.get('/api/processes', (req, res) => {
     try {
         if (!fs.existsSync(DATA_FILE)) {
-            res.json({});
-            return;
+            return res.json({});
         }
         const data = fs.readFileSync(DATA_FILE, 'utf8');
-        const jsonData = JSON.parse(data);
-        res.json(jsonData);
+        res.json(JSON.parse(data));
     } catch (err) {
-        logError(`Error reading data: ${err.message}`);
+        console.error('Error reading data:', err);
         res.status(500).json({ error: 'Failed to read data' });
     }
 });
 
-// POST
+// API: POST
 app.post('/api/processes', (req, res) => {
     try {
         const newData = req.body;
-        if (!newData) {
-            throw new Error('No data received');
-        }
-        // Write file
+        if (!newData) return res.status(400).json({ error: 'No data received' });
+
         fs.writeFileSync(DATA_FILE, JSON.stringify(newData, null, 4), 'utf8');
         res.json({ success: true });
     } catch (err) {
-        logError(`Error writing data: ${err.message}`);
+        console.error('Error writing data:', err);
         res.status(500).json({ error: 'Failed to write data' });
     }
 });
 
-// Handle React routing, return all requests to React app
+// For all other routes, serve index.html (Client-side routing support)
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    const indexPath = path.join(distPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send('Application build not found. Please run build first.');
+    }
 });
 
 app.listen(port, '0.0.0.0', () => {
