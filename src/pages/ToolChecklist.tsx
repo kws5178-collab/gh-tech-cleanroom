@@ -35,6 +35,24 @@ const ToolChecklist: React.FC = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newToolName, setNewToolName] = useState('');
 
+    // Admin Mode
+    const [isAdmin, setIsAdmin] = useState(localStorage.getItem('isAdmin') === 'true');
+
+    const toggleAdmin = () => {
+        if (!isAdmin) {
+            const pwd = prompt('관리자 비밀번호를 입력하세요.');
+            if (pwd === '1234') { // 기본 비밀번호 1234
+                localStorage.setItem('isAdmin', 'true');
+                setIsAdmin(true);
+            } else {
+                alert('비밀번호가 틀렸습니다.');
+            }
+        } else {
+            localStorage.setItem('isAdmin', 'false');
+            setIsAdmin(false);
+        }
+    };
+
     // Load tools (standard + custom)
     React.useEffect(() => {
         const loadTools = async () => {
@@ -145,11 +163,28 @@ const ToolChecklist: React.FC = () => {
 
     return (
         <div className="container" style={{ paddingBottom: '100px' }}>
-            <header style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px' }}>
-                <button onClick={() => navigate(`/process/${id}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>
-                    <ArrowLeft size={24} />
+            <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px', paddingTop: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <button onClick={() => navigate(`/process/${id}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>
+                        <ArrowLeft size={24} />
+                    </button>
+                    <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>수공구 점검</h1>
+                </div>
+                <button
+                    onClick={toggleAdmin}
+                    className="glass"
+                    style={{
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        color: isAdmin ? '#E53E3E' : 'var(--primary)',
+                        border: '1px solid currentColor',
+                        background: 'transparent'
+                    }}
+                >
+                    {isAdmin ? '관리자 모드' : '모드 변경'}
                 </button>
-                <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>수공구 점검</h1>
             </header>
 
             <div style={{ position: 'relative', marginBottom: '25px' }}>
@@ -202,19 +237,25 @@ const ToolChecklist: React.FC = () => {
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         const customImage = toolImages[tool.name];
-                                        if (customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:'))) {
-                                            setViewingImage(customImage);
+                                        const staticImage = tool.image;
+                                        const imageUrl = (customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:')))
+                                            ? customImage
+                                            : staticImage;
+
+                                        if (imageUrl) {
+                                            setViewingImage(imageUrl);
                                         }
                                     }}
                                 >
                                     {(() => {
                                         const customImage = toolImages[tool.name];
                                         const hasCustomImage = customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:'));
+                                        const staticImage = tool.image;
 
-                                        if (hasCustomImage) {
+                                        if (hasCustomImage || (staticImage && !imageError[tool.name])) {
                                             return (
                                                 <img
-                                                    src={customImage}
+                                                    src={hasCustomImage ? customImage : staticImage}
                                                     alt={tool.name}
                                                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                     onError={() => handleImageError(tool.name)}
@@ -223,35 +264,36 @@ const ToolChecklist: React.FC = () => {
                                         }
 
                                         const IconComponent = getIconForName(tool.name);
-                                        console.log('Rendering icon for:', tool.name);
                                         return <IconComponent size={32} color="#3182CE" strokeWidth={1.5} />;
                                     })()}
 
-                                    <label
-                                        onClick={(e) => e.stopPropagation()}
-                                        style={{
-                                            position: 'absolute',
-                                            bottom: 0,
-                                            right: 0,
-                                            background: 'rgba(255,255,255,0.9)',
-                                            width: '24px',
-                                            height: '24px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            borderTopLeftRadius: '6px',
-                                            boxShadow: '-1px -1px 2px rgba(0,0,0,0.05)'
-                                        }}
-                                    >
-                                        <Camera size={14} color="#4A5568" />
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            style={{ display: 'none' }}
-                                            onChange={(e) => handleImageUpload(tool.name, e)}
-                                        />
-                                    </label>
+                                    {isAdmin && (
+                                        <label
+                                            onClick={(e) => e.stopPropagation()}
+                                            style={{
+                                                position: 'absolute',
+                                                bottom: 0,
+                                                right: 0,
+                                                background: 'rgba(255,255,255,0.9)',
+                                                width: '24px',
+                                                height: '24px',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                borderTopLeftRadius: '6px',
+                                                boxShadow: '-1px -1px 2px rgba(0,0,0,0.05)'
+                                            }}
+                                        >
+                                            <Camera size={14} color="#4A5568" />
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                style={{ display: 'none' }}
+                                                onChange={(e) => handleImageUpload(tool.name, e)}
+                                            />
+                                        </label>
+                                    )}
                                 </div>
                                 <div>
                                     <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--primary)' }}>{tool.name}</h3>
@@ -279,17 +321,19 @@ const ToolChecklist: React.FC = () => {
             </div>
 
             <div style={{ position: 'fixed', bottom: '20px', left: '20px', right: '20px', display: 'flex', gap: '10px' }}>
-                <button
-                    className="btn glass"
-                    style={{ flex: '1', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '14px', background: 'rgba(255, 255, 255, 0.8)' }}
-                    onClick={() => setShowAddModal(true)}
-                >
-                    <Plus size={18} />
-                    공구추가
-                </button>
+                {isAdmin && (
+                    <button
+                        className="btn glass"
+                        style={{ flex: '1', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '14px', background: 'rgba(255, 255, 255, 0.8)' }}
+                        onClick={() => setShowAddModal(true)}
+                    >
+                        <Plus size={18} />
+                        공구추가
+                    </button>
+                )}
                 <button
                     className="btn btn-primary"
-                    style={{ flex: '2', padding: '18px', boxShadow: '0 10px 15px -3px rgba(26, 58, 95, 0.3)' }}
+                    style={{ flex: isAdmin ? '2' : '1', padding: '18px', boxShadow: '0 10px 15px -3px rgba(26, 58, 95, 0.3)' }}
                     onClick={() => navigate(`/process/${id}`)}
                 >
                     점검 완료 ({checkedItems.length}/{allTools.length})

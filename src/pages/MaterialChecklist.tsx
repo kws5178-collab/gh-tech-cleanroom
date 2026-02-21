@@ -35,6 +35,24 @@ const MaterialChecklist: React.FC = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [newMaterialName, setNewMaterialName] = useState('');
 
+    // Admin Mode
+    const [isAdmin, setIsAdmin] = useState(localStorage.getItem('isAdmin') === 'true');
+
+    const toggleAdmin = () => {
+        if (!isAdmin) {
+            const pwd = prompt('관리자 비밀번호를 입력하세요.');
+            if (pwd === '1234') { // 기본 비밀번호 1234
+                localStorage.setItem('isAdmin', 'true');
+                setIsAdmin(true);
+            } else {
+                alert('비밀번호가 틀렸습니다.');
+            }
+        } else {
+            localStorage.setItem('isAdmin', 'false');
+            setIsAdmin(false);
+        }
+    };
+
     // Load materials (standard + custom)
     React.useEffect(() => {
         const loadMaterials = async () => {
@@ -158,11 +176,28 @@ const MaterialChecklist: React.FC = () => {
 
     return (
         <div className="container" style={{ paddingBottom: '110px' }}>
-            <header style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '25px', paddingTop: '10px' }}>
-                <button onClick={() => navigate(`/process/${id}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>
-                    <ArrowLeft size={24} />
+            <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '25px', paddingTop: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <button onClick={() => navigate(`/process/${id}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--primary)' }}>
+                        <ArrowLeft size={24} />
+                    </button>
+                    <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>자재 입고 확인</h1>
+                </div>
+                <button
+                    onClick={toggleAdmin}
+                    className="glass"
+                    style={{
+                        padding: '8px 12px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        fontWeight: 'bold',
+                        color: isAdmin ? '#E53E3E' : 'var(--primary)',
+                        border: '1px solid currentColor',
+                        background: 'transparent'
+                    }}
+                >
+                    {isAdmin ? '관리자 모드' : '모드 변경'}
                 </button>
-                <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>자재 입고 확인</h1>
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -204,19 +239,25 @@ const MaterialChecklist: React.FC = () => {
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     const customImage = materialImages[mat.name];
-                                    if (customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:'))) {
-                                        setViewingImage(customImage);
+                                    const staticImage = mat.image;
+                                    const imageUrl = (customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:')))
+                                        ? customImage
+                                        : staticImage;
+
+                                    if (imageUrl) {
+                                        setViewingImage(imageUrl);
                                     }
                                 }}
                             >
                                 {(() => {
                                     const customImage = materialImages[mat.name];
                                     const hasCustomImage = customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:'));
+                                    const staticImage = mat.image;
 
-                                    if (hasCustomImage) {
+                                    if (hasCustomImage || (staticImage && !imageError[mat.name])) {
                                         return (
                                             <img
-                                                src={customImage}
+                                                src={hasCustomImage ? customImage : staticImage}
                                                 alt={mat.name}
                                                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                                 onError={() => handleImageError(mat.name)}
@@ -225,35 +266,36 @@ const MaterialChecklist: React.FC = () => {
                                     }
 
                                     const IconComponent = getIconForName(mat.name);
-                                    console.log('Rendering icon for material:', mat.name);
                                     return <IconComponent size={32} color="#3182CE" strokeWidth={1.5} />;
                                 })()}
 
-                                <label
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: 0,
-                                        right: 0,
-                                        background: 'rgba(255,255,255,0.9)',
-                                        width: '24px',
-                                        height: '24px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        cursor: 'pointer',
-                                        borderTopLeftRadius: '6px',
-                                        boxShadow: '-1px -1px 2px rgba(0,0,0,0.05)'
-                                    }}
-                                >
-                                    <Camera size={14} color="#4A5568" />
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        style={{ display: 'none' }}
-                                        onChange={(e) => handleImageUpload(mat.name, e)}
-                                    />
-                                </label>
+                                {isAdmin && (
+                                    <label
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            right: 0,
+                                            background: 'rgba(255,255,255,0.9)',
+                                            width: '24px',
+                                            height: '24px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            cursor: 'pointer',
+                                            borderTopLeftRadius: '6px',
+                                            boxShadow: '-1px -1px 2px rgba(0,0,0,0.05)'
+                                        }}
+                                    >
+                                        <Camera size={14} color="#4A5568" />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            style={{ display: 'none' }}
+                                            onChange={(e) => handleImageUpload(mat.name, e)}
+                                        />
+                                    </label>
+                                )}
                             </div>
                             <div>
                                 <h3 style={{ fontSize: '17px', fontWeight: '800', color: 'var(--primary)', marginBottom: '4px' }}>{mat.name}</h3>
@@ -262,7 +304,7 @@ const MaterialChecklist: React.FC = () => {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            {mat.isCustom && mat.id && (
+                            {isAdmin && mat.isCustom && mat.id && (
                                 <button
                                     onClick={(e) => handleDeleteMaterial(e, mat.id!, mat.name)}
                                     style={{
@@ -295,17 +337,19 @@ const MaterialChecklist: React.FC = () => {
             </div>
 
             <div style={{ position: 'fixed', bottom: '25px', left: '20px', right: '20px', display: 'flex', gap: '10px' }}>
-                <button
-                    className="btn glass"
-                    style={{ flex: '1', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '14px', background: 'rgba(255, 255, 255, 0.8)' }}
-                    onClick={() => setShowAddModal(true)}
-                >
-                    <Plus size={18} />
-                    자재추가
-                </button>
+                {isAdmin && (
+                    <button
+                        className="btn glass"
+                        style={{ flex: '1', padding: '15px', borderRadius: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', fontSize: '14px', background: 'rgba(255, 255, 255, 0.8)' }}
+                        onClick={() => setShowAddModal(true)}
+                    >
+                        <Plus size={18} />
+                        자재추가
+                    </button>
+                )}
                 <button
                     className="btn btn-primary"
-                    style={{ flex: '2', padding: '20px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
+                    style={{ flex: isAdmin ? '2' : '1', padding: '20px', borderRadius: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}
                     onClick={() => navigate(`/process/${id}`)}
                 >
                     확인 완료 ({checkedItems.length}/{allMaterials.length})

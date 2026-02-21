@@ -11,6 +11,49 @@
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/images/icon-192.png">
   <meta name="theme-color" content="#1A3A5F">
+  <style>
+    /* Prevent printing */
+    @media print {
+      body {
+        display: none !important;
+      }
+    }
+
+    /* Disable text selection */
+    body {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+  </style>
+  <script>
+    // Disable right click
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Disable keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      // Ctrl+S, Ctrl+P, Ctrl+U, Ctrl+Shift+I, F12
+      if (
+        (e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u' || e.key === 'c')) ||
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        e.key === 'F12'
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // Detect print screen (limited effectiveness)
+    document.addEventListener('keyup', e => {
+      if (e.key === 'PrintScreen') {
+        navigator.clipboard.writeText('');
+        alert('보안상의 이유로 스크린샷 캡쳐가 제한됩니다.');
+      }
+    });
+  </script>
   <!-- Screen capture prevention meta tags -->
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:; worker-src 'self' blob:;">
