@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ToolChecklist from './pages/ToolChecklist';
@@ -9,9 +9,11 @@ import MaterialDetails from './pages/MaterialDetails';
 import ProcessDashboard from './pages/ProcessDashboard';
 import WorkGuide from './pages/WorkGuide';
 import LevelingGuide from './pages/LevelingGuide';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 import './index.css';
 
 function Footer() {
+  const navigate = useNavigate();
   return (
     <footer style={{
       padding: '2rem 1.5rem',
@@ -28,7 +30,7 @@ function Footer() {
         실제 작업 시에는 반드시 현장 관리자의 지시와 최신 안전 수칙을 최우선으로 준수해야 하며,
         본 앱의 정보 활용으로 인한 결과에 대해 G.H Tech는 법적 책임을 지지 않습니다.
       </p>
-      <p>© 2026 G.H Tech. All rights reserved.</p>
+      <p>© 2026 G.H Tech. All rights reserved. | <span onClick={() => window.location.href = '/privacy'} style={{ cursor: 'pointer', textDecoration: 'underline' }}>개인정보처리방침</span></p>
     </footer>
   );
 }
@@ -40,6 +42,7 @@ function App() {
         <div style={{ flex: 1 }}>
           <Routes>
             <Route path="/" element={<Login />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
             <Route path="/material-specs" element={<MaterialSpecs />} />
             <Route path="/material-details" element={<MaterialDetails />} />
             <Route path="/leveling-guide" element={<LevelingGuide />} />
