@@ -14,11 +14,7 @@ const DATA_FILE = fs.existsSync('/opt/render/project/src/src/data/processes.json
     ? '/opt/render/project/src/src/data/processes.json'
     : path.join(__dirname, 'src', 'data', 'processes.json');
 
-// 정적 파일 서비스
-const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
-
-// API 라우트
+// API 라우트 우선 정의
 app.get('/api/processes', (req, res) => {
     try {
         if (!fs.existsSync(DATA_FILE)) return res.json({});
@@ -39,14 +35,20 @@ app.post('/api/processes', (req, res) => {
     }
 });
 
-// 모든 요청을 index.html로 (앱 구동)
-app.get('*', (req, res) => {
-    const file = path.join(distPath, 'index.html');
-    if (fs.existsSync(file)) {
-        res.sendFile(file);
-    } else {
-        res.send('앱 빌드 중입니다. 잠시만 기다려 주세요.');
+// 정적 파일 서비스 (문제가 되는 와일드카드 제거)
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath));
+
+// 그 외 모든 요청 처리 (SPA fallback)
+app.use((req, res, next) => {
+    // API 요청이 아니면 index.html 전송
+    if (!req.path.startsWith('/api')) {
+        const indexFile = path.join(distPath, 'index.html');
+        if (fs.existsSync(indexFile)) {
+            return res.sendFile(indexFile);
+        }
     }
+    next();
 });
 
 app.listen(port, '0.0.0.0', () => {
