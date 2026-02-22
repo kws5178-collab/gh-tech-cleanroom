@@ -53,10 +53,9 @@ app.post('/api/upload-image', (req, res) => {
         if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
         // 파일명 생성 (관련 ID + 타임스탬프)
-        // 특수문자 제거하되 한글/영문/숫자 유지
-        const safeRelatedId = (relatedId || 'unknown').replace(/[^\w\uAC00-\uD7AF]/gi, '_');
+        const safeRelatedId = (relatedId || 'unknown').replace(/[^a-z0-9]/gi, '_');
         const timestamp = Date.now();
-        const safeName = (name || 'image').replace(/[^\w\uAC00-\uD7AF.]/gi, '_');
+        const safeName = (name || 'image').replace(/[^a-z0-9.]/gi, '_');
         const fileName = `${safeRelatedId}_${timestamp}_${safeName}`;
         const filePath = path.join(uploadDir, fileName);
 
@@ -80,8 +79,7 @@ app.get('/api/list-images/:relatedId', (req, res) => {
         const uploadDir = path.join(__dirname, 'public', 'images', 'uploads');
         if (!fs.existsSync(uploadDir)) return res.json([]);
 
-        // 특수문자 제거하되 한글/영문/숫자 유지
-        const safeRelatedId = (relatedId || 'unknown').replace(/[^\w\uAC00-\uD7AF]/gi, '_');
+        const safeRelatedId = (relatedId || 'unknown').replace(/[^a-z0-9]/gi, '_');
         const files = fs.readdirSync(uploadDir);
         const filteredFiles = files.filter(f => f.startsWith(`${safeRelatedId}_`));
 

@@ -32,7 +32,7 @@ export const uploadImage = async (data: string, name: string, relatedId?: string
 };
 
 export const listImages = async (relatedId: string): Promise<string[]> => {
-    const response = await fetch(`/api/list-images/${encodeURIComponent(relatedId)}`);
+    const response = await fetch(`/api/list-images/${relatedId}`);
     if (!response.ok) return [];
     return response.json();
 };

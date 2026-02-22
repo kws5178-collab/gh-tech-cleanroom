@@ -90,21 +90,21 @@ const MaterialChecklist: React.FC = () => {
             await Promise.all(uniqueMaterials.map(async (matName) => {
                 const relatedId = `material:${matName}`;
 
-                // 1. 서버 이미지 먼저 확인 (최신 동기화 데이터 우선)
-                try {
-                    const serverUrls = await listImages(relatedId);
-                    if (serverUrls.length > 0) {
-                        imagesMap[matName] = serverUrls[serverUrls.length - 1];
-                        return; // 서버 이미지가 있으면 로컬 확인을 건너뜁니다
-                    }
-                } catch (err) {
-                    console.warn(`Failed to fetch server image for ${matName}:`, err);
-                }
-
-                // 2. 서버에 없으면 로컬 이미지 확인
+                // 1. 로컬 이미지 확인
                 const localImages = await getImagesByRelatedId(relatedId);
                 if (localImages.length > 0) {
                     imagesMap[matName] = localImages[localImages.length - 1].data;
+                }
+                // 2. 서버 이미지 확인 (로컬에 없는 경우)
+                else {
+                    try {
+                        const serverUrls = await listImages(relatedId);
+                        if (serverUrls.length > 0) {
+                            imagesMap[matName] = serverUrls[serverUrls.length - 1];
+                        }
+                    } catch (err) {
+                        console.warn(`Failed to fetch server image for ${matName}:`, err);
+                    }
                 }
             }));
 
