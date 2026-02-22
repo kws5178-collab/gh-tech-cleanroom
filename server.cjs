@@ -7,7 +7,8 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 데이터 경로 설정
 const DATA_FILE = path.join(__dirname, 'src', 'data', 'processes.json');
@@ -41,6 +42,57 @@ app.post('/api/processes', noCache, (req, res) => {
     }
 });
 
+// 이미지 업로드 엔드포인트 (Base64 데이터를 파일로 저장)
+app.post('/api/upload-image', (req, res) => {
+    try {
+        const { data, name, relatedId } = req.body;
+        if (!data) return res.status(400).json({ error: 'No image data' });
+
+        // public/images/uploads 폴더 생성
+        const uploadDir = path.join(__dirname, 'public', 'images', 'uploads');
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+        // 파일명 생성 (관련 ID + 타임스탬프)
+        // 특수문자 제거하되 한글/영문/숫자 유지
+        const safeRelatedId = (relatedId || 'unknown').replace(/[^\w\uAC00-\uD7AF]/gi, '_');
+        const timestamp = Date.now();
+        const safeName = (name || 'image').replace(/[^\w\uAC00-\uD7AF.]/gi, '_');
+        const fileName = `${safeRelatedId}_${timestamp}_${safeName}`;
+        const filePath = path.join(uploadDir, fileName);
+
+        // Base64 데이터에서 실제 데이터 추출
+        const base64Data = data.replace(/^data:image\/\w+;base64,/, '');
+        fs.writeFileSync(filePath, base64Data, 'base64');
+
+        const publicUrl = `/images/uploads/${fileName}`;
+        console.log(`Image saved: ${fileName}`);
+        res.json({ success: true, url: publicUrl });
+    } catch (err) {
+        console.error('Upload Error:', err);
+        res.status(500).json({ error: 'Upload Error' });
+    }
+});
+
+// 특정 ID 관련 이미지 목록 조회 엔드포인트
+app.get('/api/list-images/:relatedId', (req, res) => {
+    try {
+        const { relatedId } = req.params;
+        const uploadDir = path.join(__dirname, 'public', 'images', 'uploads');
+        if (!fs.existsSync(uploadDir)) return res.json([]);
+
+        // 특수문자 제거하되 한글/영문/숫자 유지
+        const safeRelatedId = (relatedId || 'unknown').replace(/[^\w\uAC00-\uD7AF]/gi, '_');
+        const files = fs.readdirSync(uploadDir);
+        const filteredFiles = files.filter(f => f.startsWith(`${safeRelatedId}_`));
+
+        const urls = filteredFiles.map(f => `/images/uploads/${f}`);
+        res.json(urls);
+    } catch (err) {
+        console.error('List Images Error:', err);
+        res.status(500).json({ error: 'List Error' });
+    }
+});
+
 // 클라이언트 스토리지(LocalStorage 등) 데이터를 서버 파일로 동기화하는 엔드포인트
 app.post('/api/sync-data', (req, res) => {
     try {
@@ -60,9 +112,10 @@ app.post('/api/sync-data', (req, res) => {
     }
 });
 
-// 정적 파일 서비스 (문제가 되는 와일드카드 제거)
+// 정적 파일 서비스
 const distPath = path.join(__dirname, 'dist');
 app.use(express.static(distPath));
+app.use('/images', express.static(path.join(__dirname, 'public', 'images')));
 
 // 그 외 모든 요청 처리 (SPA fallback)
 app.use((req, res, next) => {

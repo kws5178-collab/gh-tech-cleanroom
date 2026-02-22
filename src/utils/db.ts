@@ -69,7 +69,7 @@ export const initDB = async (): Promise<void> => {
     await openDB();
 };
 
-export const saveImage = async (file: File, relatedId?: string): Promise<void> => {
+export const saveImage = async (file: File, relatedId?: string): Promise<string> => {
     const db = await openDB();
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -87,7 +87,7 @@ export const saveImage = async (file: File, relatedId?: string): Promise<void> =
             };
             const request = store.add(record);
 
-            request.onsuccess = () => resolve();
+            request.onsuccess = () => resolve(base64);
             request.onerror = () => reject(request.error);
         };
         reader.onerror = () => reject(reader.error);

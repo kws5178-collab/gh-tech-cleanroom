@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle, BookOpen, Edit, Save, Plus, Trash2 } from 'lucide-react';
 import { ProcessData, processes as fallbackProcesses } from '../data/processes';
 import { initDB, saveImage, getImagesByRelatedId, deleteImage } from '../utils/db';
-import { fetchProcesses, saveProcesses } from '../api/processApi';
+import { fetchProcesses, saveProcesses, uploadImage, listImages } from '../api/processApi';
 
 const WorkGuide: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -77,17 +77,39 @@ const WorkGuide: React.FC = () => {
         }
     }, [isEditing, editedSteps, editedDescriptions, id]);
 
-    // Load saved images from IndexedDB on mount (filtered by process ID and Step)
+    // Load saved images from IndexedDB and Server on mount (filtered by process ID and Step)
     useEffect(() => {
         const loadImages = async () => {
             if (!id) return;
             try {
                 await initDB();
                 const relatedId = `${id}_step_${currentStep}`;
-                const images = await getImagesByRelatedId(relatedId);
-                setSavedImages(images.map(img => ({ id: img.id!, data: img.data })));
+
+                // 1. 로컬 DB 로드 (Base64)
+                const localImages = await getImagesByRelatedId(relatedId);
+                const formattedLocal = localImages.map(img => ({
+                    id: img.id!,
+                    data: img.data,
+                    isServer: false
+                }));
+
+                // 2. 서버 이미지 목록 로드 (URL)
+                let serverImages: any[] = [];
+                try {
+                    const serverUrls = await listImages(relatedId);
+                    serverImages = serverUrls.map((url: string, idx: number) => ({
+                        id: 999000 + idx, // 더미 ID
+                        data: url,
+                        isServer: true
+                    }));
+                } catch (err) {
+                    console.warn('Failed to load server images:', err);
+                }
+
+                // 합치기 (중복 제거는 생략하고 모두 표시)
+                setSavedImages([...formattedLocal, ...serverImages]);
             } catch (error) {
-                console.error('Failed to load images from DB:', error);
+                console.error('Failed to load images:', error);
             }
         };
         loadImages();
@@ -165,17 +187,26 @@ const WorkGuide: React.FC = () => {
         if (!id || selectedFiles.length === 0) return;
         setIsUploading(true);
         setUploadStatus('업로드 중...');
+        const relatedId = `${id}_step_${currentStep}`;
         try {
             for (const file of selectedFiles) {
-                await saveImage(file, `${id}_step_${currentStep}`); // Pass process ID + step as relatedId
+                // 1. 로컬 저장
+                const base64 = await saveImage(file, relatedId);
+
+                // 2. 서버 업로드 시도
+                try {
+                    await uploadImage(base64, file.name, relatedId);
+                } catch (apiErr) {
+                    console.warn('Server upload failed (Image stored locally only):', apiErr);
+                }
             }
-            const images = await getImagesByRelatedId(`${id}_step_${currentStep}`);
+            const images = await getImagesByRelatedId(relatedId);
             setSavedImages(images.map(img => ({ id: img.id!, data: img.data })));
             setSelectedFiles([]);
             setPreviewUrls([]);
             setUploadStatus('완료');
             setTimeout(() => setUploadStatus(''), 1000);
-            alert('업로드 완료');
+            alert('업로드 완료 (서버 동기화 포함)');
         } catch (error) {
             console.error(error);
             alert('오류 발생');

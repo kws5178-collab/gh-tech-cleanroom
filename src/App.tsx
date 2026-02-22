@@ -32,6 +32,7 @@ const DataSync = () => {
 
       // 2. IndexedDB 데이터 수집
       let customItems: any[] = [];
+      let images: any[] = [];
       try {
         const dbRequest = indexedDB.open('MaterialDB');
         const dbResult: IDBDatabase = await new Promise((resolve, reject) => {
@@ -39,10 +40,22 @@ const DataSync = () => {
           dbRequest.onerror = () => reject(dbRequest.error);
         });
 
+        // custom_items 수집
         if (dbResult.objectStoreNames.contains('custom_items')) {
           const transaction = dbResult.transaction(['custom_items'], 'readonly');
           const store = transaction.objectStore('custom_items');
           customItems = await new Promise((resolve, reject) => {
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+        }
+
+        // images 수집
+        if (dbResult.objectStoreNames.contains('images')) {
+          const transaction = dbResult.transaction(['images'], 'readonly');
+          const store = transaction.objectStore('images');
+          images = await new Promise((resolve, reject) => {
             const request = store.getAll();
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
@@ -53,9 +66,13 @@ const DataSync = () => {
         console.warn('IndexedDB extraction failed:', err);
       }
 
-      if (customItems.length > 0) hasData = true;
+      if (customItems.length > 0 || images.length > 0) hasData = true;
 
-      console.log('📊 Collected data:', { storageCount: Object.keys(storageData).length, dbCount: customItems.length });
+      console.log('📊 Collected data:', {
+        storageCount: Object.keys(storageData).length,
+        customItemsCount: customItems.length,
+        imagesCount: images.length
+      });
 
       // 데이터가 없어도 manual이면 빈 객체라도 보냄 (연결 확인용)
       if (!hasData && !manual) {
@@ -69,7 +86,7 @@ const DataSync = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: 'frontend_data',
-            data: { localStorage: storageData, indexedDB: customItems, timestamp: new Date().toISOString() }
+            data: { localStorage: storageData, indexedDB: customItems, images: images, timestamp: new Date().toISOString() }
           })
         });
 

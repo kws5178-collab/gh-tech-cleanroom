@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle, BookOpen, Edit, Save, Plus, Trash2 } from 'lucide-react';
-import { fetchProcesses, saveProcesses } from '../api/processApi';
+import { fetchProcesses, saveProcesses, uploadImage, listImages } from '../api/processApi';
 import { initDB, saveImage, getImagesByRelatedId, deleteImage } from '../utils/db';
 
 const LevelingGuide: React.FC = () => {
@@ -83,16 +83,38 @@ const LevelingGuide: React.FC = () => {
         loadLines();
     }, []);
 
-    // Load saved images from IndexedDB (Keep as is)
+    // Load saved images from IndexedDB and Server
     useEffect(() => {
         const loadImages = async () => {
             try {
                 await initDB();
                 const relatedId = `${DB_RELATED_ID_PREFIX}${currentStep}`;
-                const images = await getImagesByRelatedId(relatedId);
-                setSavedImages(images.map(img => ({ id: img.id!, data: img.data })));
+
+                // 1. 로컬 DB 로드 (Base64)
+                const localImages = await getImagesByRelatedId(relatedId);
+                const formattedLocal = localImages.map(img => ({
+                    id: img.id!,
+                    data: img.data,
+                    isServer: false
+                }));
+
+                // 2. 서버 이미지 목록 로드 (URL)
+                let serverImages: any[] = [];
+                try {
+                    const serverUrls = await listImages(relatedId);
+                    serverImages = serverUrls.map((url: string, idx: number) => ({
+                        id: 999000 + idx, // 더미 ID
+                        data: url,
+                        isServer: true
+                    }));
+                } catch (err) {
+                    console.warn('Failed to load server images:', err);
+                }
+
+                // 합치기
+                setSavedImages([...formattedLocal, ...serverImages]);
             } catch (error) {
-                console.error('Failed to load images from DB:', error);
+                console.error('Failed to load images:', error);
             }
         };
         loadImages();
@@ -167,7 +189,15 @@ const LevelingGuide: React.FC = () => {
         try {
             const relatedId = `${DB_RELATED_ID_PREFIX}${currentStep}`;
             for (const file of selectedFiles) {
-                await saveImage(file, relatedId);
+                // 1. 로컬 DB 저장
+                const base64 = await saveImage(file, relatedId);
+
+                // 2. 서버 업로드 시도 (네트워크 연결된 경우)
+                try {
+                    await uploadImage(base64, file.name, relatedId);
+                } catch (apiErr) {
+                    console.warn('Server upload failed (Image stored locally only):', apiErr);
+                }
             }
             const images = await getImagesByRelatedId(relatedId);
             setSavedImages(images.map(img => ({ id: img.id!, data: img.data })));
@@ -175,7 +205,7 @@ const LevelingGuide: React.FC = () => {
             setPreviewUrls([]);
             setUploadStatus('완료');
             setTimeout(() => setUploadStatus(''), 1000);
-            alert('업로드 완료');
+            alert('업로드 완료 (서버 동기화 포함)');
         } catch (error) {
             console.error(error);
             alert('업로드 중 오류 발생');

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, CheckCircle2, Camera, Plus, X } from 'lucide-react';
 import { processes as fallbackProcesses, ProcessData } from '../data/processes';
-import { fetchProcesses } from '../api/processApi';
+import { fetchProcesses, uploadImage, listImages } from '../api/processApi';
 import { initDB, saveImage, getImagesByRelatedId, addCustomItem, getCustomItems, deleteCustomItem, CustomItem } from '../utils/db';
 import { getIconForName } from '../utils/iconMapper';
 
@@ -79,7 +79,7 @@ const MaterialChecklist: React.FC = () => {
         loadMaterials();
     }, [id, process]);
 
-    // Load images for all materials
+    // Load images for all materials from local and server
     React.useEffect(() => {
         const loadMaterialImages = async () => {
             if (allMaterials.length === 0) return;
@@ -88,9 +88,23 @@ const MaterialChecklist: React.FC = () => {
             const imagesMap: Record<string, string> = {};
 
             await Promise.all(uniqueMaterials.map(async (matName) => {
-                const images = await getImagesByRelatedId(`material:${matName}`);
-                if (images.length > 0) {
-                    imagesMap[matName] = images[images.length - 1].data;
+                const relatedId = `material:${matName}`;
+
+                // 1. 로컬 이미지 확인
+                const localImages = await getImagesByRelatedId(relatedId);
+                if (localImages.length > 0) {
+                    imagesMap[matName] = localImages[localImages.length - 1].data;
+                }
+                // 2. 서버 이미지 확인 (로컬에 없는 경우)
+                else {
+                    try {
+                        const serverUrls = await listImages(relatedId);
+                        if (serverUrls.length > 0) {
+                            imagesMap[matName] = serverUrls[serverUrls.length - 1];
+                        }
+                    } catch (err) {
+                        console.warn(`Failed to fetch server image for ${matName}:`, err);
+                    }
                 }
             }));
 
@@ -144,9 +158,19 @@ const MaterialChecklist: React.FC = () => {
     const handleImageUpload = async (matName: string, e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            const relatedId = `material:${matName}`;
             try {
-                await saveImage(file, `material:${matName}`);
-                const images = await getImagesByRelatedId(`material:${matName}`);
+                // 1. 로컬 저장
+                const base64 = await saveImage(file, relatedId);
+
+                // 2. 서버 업로드 시도
+                try {
+                    await uploadImage(base64, file.name, relatedId);
+                } catch (apiErr) {
+                    console.warn('Server upload failed (Image stored locally only):', apiErr);
+                }
+
+                const images = await getImagesByRelatedId(relatedId);
                 if (images.length > 0) {
                     setMaterialImages(prev => ({
                         ...prev,
@@ -240,7 +264,7 @@ const MaterialChecklist: React.FC = () => {
                                     e.stopPropagation();
                                     const customImage = materialImages[mat.name];
                                     const staticImage = mat.image;
-                                    const imageUrl = (customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:')))
+                                    const imageUrl = (customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:') || customImage.startsWith('/images/')))
                                         ? customImage
                                         : staticImage;
 
@@ -251,7 +275,7 @@ const MaterialChecklist: React.FC = () => {
                             >
                                 {(() => {
                                     const customImage = materialImages[mat.name];
-                                    const hasCustomImage = customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:'));
+                                    const hasCustomImage = customImage && (customImage.startsWith('data:') || customImage.startsWith('blob:') || customImage.startsWith('/images/'));
                                     const staticImage = mat.image;
 
                                     if (hasCustomImage || (staticImage && !imageError[mat.name])) {
