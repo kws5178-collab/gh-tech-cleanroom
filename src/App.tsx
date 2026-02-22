@@ -11,6 +11,93 @@ import WorkGuide from './pages/WorkGuide';
 import LevelingGuide from './pages/LevelingGuide';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import './index.css';
+import { useEffect } from 'react';
+
+// 자동 데이터 동기화 컴포넌트
+const DataSync = () => {
+  useEffect(() => {
+    const syncData = async (manual = false) => {
+      console.log('🔍 Sync process started... (Manual: ' + manual + ')');
+
+      // 1. LocalStorage 데이터 수집
+      const storageData: Record<string, string> = {};
+      let hasData = false;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('leveling') || key.includes('guide') || key.includes('processes') || key.includes('backup') || key.includes('isAdmin'))) {
+          storageData[key] = localStorage.getItem(key) || '';
+          hasData = true;
+        }
+      }
+
+      // 2. IndexedDB 데이터 수집
+      let customItems: any[] = [];
+      try {
+        const dbRequest = indexedDB.open('MaterialDB');
+        const dbResult: IDBDatabase = await new Promise((resolve, reject) => {
+          dbRequest.onsuccess = () => resolve(dbRequest.result);
+          dbRequest.onerror = () => reject(dbRequest.error);
+        });
+
+        if (dbResult.objectStoreNames.contains('custom_items')) {
+          const transaction = dbResult.transaction(['custom_items'], 'readonly');
+          const store = transaction.objectStore('custom_items');
+          customItems = await new Promise((resolve, reject) => {
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+          });
+        }
+        dbResult.close();
+      } catch (err) {
+        console.warn('IndexedDB extraction failed:', err);
+      }
+
+      if (customItems.length > 0) hasData = true;
+
+      console.log('📊 Collected data:', { storageCount: Object.keys(storageData).length, dbCount: customItems.length });
+
+      // 데이터가 없어도 manual이면 빈 객체라도 보냄 (연결 확인용)
+      if (!hasData && !manual) {
+        console.log('✨ No modified data found to sync.');
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/sync-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'frontend_data',
+            data: { localStorage: storageData, indexedDB: customItems, timestamp: new Date().toISOString() }
+          })
+        });
+
+        if (response.ok) {
+          console.log('✅ Frontend data synced to server');
+          alert('수정사항 동기화 성공! 이제 메인 서버 배포가 진행됩니다.');
+          sessionStorage.setItem('sync_notified', 'true');
+        } else {
+          console.error('❌ Sync failed with status:', response.status);
+          if (manual) alert('서버 연결 실패 (Status: ' + response.status + '). npm run dev가 실행 중인지 확인해 주세요.');
+        }
+      } catch (err) {
+        console.error('❌ Sync failed:', err);
+        if (manual) alert('동기화 중 오류가 발생했습니다. 터미널을 확인해 주세요.');
+      }
+    };
+
+    // 전역 함수 등록
+    (window as any).forceSyncData = () => syncData(true);
+
+    // 자동 실행 (이미 알림 띄웠으면 스킵)
+    if (!sessionStorage.getItem('sync_notified')) {
+      syncData();
+    }
+  }, []);
+
+  return null;
+};
 
 function Footer() {
   const navigate = useNavigate();
@@ -38,6 +125,7 @@ function Footer() {
 function App() {
   return (
     <Router>
+      <DataSync />
       <div className="app-container" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ flex: 1 }}>
           <Routes>

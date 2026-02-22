@@ -19,7 +19,23 @@ const Dashboard: React.FC = () => {
                     <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>G.H Tech</h1>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>클린룸 작업 관리 시스템</p>
                 </div>
-                <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <button
+                        onClick={() => (window as any).forceSyncData?.()}
+                        className="glass"
+                        style={{
+                            padding: '8px 12px',
+                            borderRadius: '12px',
+                            fontSize: '12px',
+                            fontWeight: 'bold',
+                            color: 'var(--primary)',
+                            border: '1px solid var(--primary)',
+                            background: 'white',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        데이터 동기화
+                    </button>
                     <Bell size={24} color="var(--text-muted)" />
                     <User size={24} color="var(--primary)" />
                 </div>

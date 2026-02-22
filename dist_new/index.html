@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>G.H Tech 클린룸 작업관리</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="G.H Tech">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/images/icon-192.png">
+  <meta name="theme-color" content="#1A3A5F">
+  <style>
+    /* Prevent printing */
+    @media print {
+      body {
+        display: none !important;
+      }
+    }
+
+    /* Disable text selection */
+    body {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* Watermark Overlay */
+    .security-watermark {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 9999;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      align-content: space-around;
+      opacity: 0.05;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    .watermark-text {
+      transform: rotate(-30deg);
+      font-size: 14px;
+      font-weight: bold;
+      color: #000;
+      white-space: nowrap;
+      margin: 50px;
+    }
+
+    /* Hide content when not visible */
+    .privacy-mask {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #1A3A5F;
+      z-index: 10000;
+      color: white;
+      text-align: center;
+      padding-top: 40vh;
+      font-weight: bold;
+    }
+  </style>
+  <script>
+    // Visibility and Focus detection
+    function showMask() { document.getElementById('privacy-mask').style.display = 'block'; }
+    function hideMask() { document.getElementById('privacy-mask').style.display = 'none'; }
+
+    document.addEventListener('visibilitychange', () => {
+      document.hidden ? showMask() : hideMask();
+    });
+    window.addEventListener('blur', showMask);
+    window.addEventListener('focus', hideMask);
+
+    // Disable right click
+    document.addEventListener('contextmenu', e => e.preventDefault());
+
+    // Disable keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      // Ctrl+S, Ctrl+P, Ctrl+U, Ctrl+Shift+I, F12
+      if (
+        (e.ctrlKey && (e.key === 's' || e.key === 'p' || e.key === 'u' || e.key === 'c')) ||
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        e.key === 'F12'
+      ) {
+        e.preventDefault();
+        return false;
+      }
+    });
+
+    // Detect print screen (limited effectiveness)
+    document.addEventListener('keyup', e => {
+      if (e.key === 'PrintScreen') {
+        navigator.clipboard.writeText('');
+        alert('보안상의 이유로 스크린샷 캡쳐가 제한됩니다.');
+      }
+    });
+  </script>
+  <!-- Screen capture prevention meta tags -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' https:; style-src 'self' 'unsafe-inline' https:; img-src 'self' data: blob: https:; script-src 'self' 'unsafe-inline' https:; worker-src 'self' blob:;">
+  <script type="module" crossorigin src="/assets/index-BYLAlpbj.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-C6xWniyv.css">
+</head>
+
+<body>
+  <div id="root"></div>
+  <div id="privacy-mask" class="privacy-mask">보안을 위해 화면을 가립니다.</div>
+  <div class="security-watermark">
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+    <div class="watermark-text">G.H TECH SECURITY</div>
+  </div>
+</body>
+
+</html>

@@ -31,6 +31,10 @@ const WorkGuide: React.FC = () => {
     const [viewingImage, setViewingImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Safety Backup Storage Keys
+    const BACKUP_STEPS_KEY = `backup_steps_${id}`;
+    const BACKUP_DESCS_KEY = `backup_descs_${id}`;
+
     // Load Data
     useEffect(() => {
         const loadData = async () => {
@@ -39,8 +43,16 @@ const WorkGuide: React.FC = () => {
                 setAllProcesses(data);
                 if (id && data[id]) {
                     setProcessData(data[id]);
-                    setEditedSteps(data[id].guideSteps || []);
-                    setEditedDescriptions(data[id].guideStepDescriptions || []);
+
+                    // Try to load from backup first if available (unsaved changes)
+                    const backupSteps = localStorage.getItem(BACKUP_STEPS_KEY);
+                    const backupDescs = localStorage.getItem(BACKUP_DESCS_KEY);
+
+                    if (backupSteps) setEditedSteps(JSON.parse(backupSteps));
+                    else setEditedSteps(data[id].guideSteps || []);
+
+                    if (backupDescs) setEditedDescriptions(JSON.parse(backupDescs));
+                    else setEditedDescriptions(data[id].guideStepDescriptions || []);
                 }
             } catch (err) {
                 console.error('Failed to load processes:', err);
@@ -56,6 +68,14 @@ const WorkGuide: React.FC = () => {
         };
         loadData();
     }, [id]);
+
+    // Save backup to LocalStorage as user types
+    useEffect(() => {
+        if (isEditing && id) {
+            localStorage.setItem(BACKUP_STEPS_KEY, JSON.stringify(editedSteps));
+            localStorage.setItem(BACKUP_DESCS_KEY, JSON.stringify(editedDescriptions));
+        }
+    }, [isEditing, editedSteps, editedDescriptions, id]);
 
     // Load saved images from IndexedDB on mount (filtered by process ID and Step)
     useEffect(() => {
@@ -99,6 +119,11 @@ const WorkGuide: React.FC = () => {
             setProcessData(updatedProcess);
             setAllProcesses(updatedAllProcesses);
             setIsEditing(false);
+
+            // Clear backup on successful save
+            localStorage.removeItem(BACKUP_STEPS_KEY);
+            localStorage.removeItem(BACKUP_DESCS_KEY);
+
             alert('저장되었습니다.');
         } catch (err) {
             console.error('Failed to save:', err);
