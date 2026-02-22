@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, CheckCircle, BookOpen, Edit, Save, Plus, Trash2 } from 'lucide-react';
+import { fetchProcesses, saveProcesses } from '../api/processApi';
 import { initDB, saveImage, getImagesByRelatedId, deleteImage } from '../utils/db';
 
 const LevelingGuide: React.FC = () => {
@@ -42,23 +43,34 @@ const LevelingGuide: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Storage Keys
-    const STORAGE_KEY_STEPS = 'leveling_guide_steps';
-    const STORAGE_KEY_DESCS = 'leveling_guide_descriptions';
     const DB_RELATED_ID_PREFIX = 'leveling-guide_step_';
 
-    // Load Data from LocalStorage
+    // Load Data (Server First, Then LocalStorage, Then Default)
     useEffect(() => {
-        const loadLines = () => {
+        const loadLines = async () => {
             try {
-                const storedSteps = localStorage.getItem(STORAGE_KEY_STEPS);
-                const storedDescs = localStorage.getItem(STORAGE_KEY_DESCS);
-
-                if (storedSteps && storedDescs) {
-                    setSteps(JSON.parse(storedSteps));
-                    setDescriptions(JSON.parse(storedDescs));
+                // 1. Try fetching from server first
+                const allData = await fetchProcesses();
+                if (allData && (allData as any).leveling_guide) {
+                    const levelingData = (allData as any).leveling_guide;
+                    setSteps(levelingData.steps);
+                    setDescriptions(levelingData.descriptions);
+                    console.log("✅ Loaded leveling guide from server");
                 } else {
-                    setSteps(defaultSteps);
-                    setDescriptions(defaultDescriptions);
+                    // 2. Fallback to LocalStorage
+                    const storedSteps = localStorage.getItem('leveling_guide_steps');
+                    const storedDescs = localStorage.getItem('leveling_guide_descriptions');
+
+                    if (storedSteps && storedDescs) {
+                        setSteps(JSON.parse(storedSteps));
+                        setDescriptions(JSON.parse(storedDescs));
+                        console.log("✅ Loaded leveling guide from LocalStorage");
+                    } else {
+                        // 3. Last fallback to default
+                        setSteps(defaultSteps);
+                        setDescriptions(defaultDescriptions);
+                        console.log("✅ Loaded default leveling guide");
+                    }
                 }
             } catch (err) {
                 console.error("Error loading leveling guide data:", err);
@@ -71,7 +83,7 @@ const LevelingGuide: React.FC = () => {
         loadLines();
     }, []);
 
-    // Load saved images from IndexedDB
+    // Load saved images from IndexedDB (Keep as is)
     useEffect(() => {
         const loadImages = async () => {
             try {
@@ -93,15 +105,28 @@ const LevelingGuide: React.FC = () => {
         };
     }, [previewUrls]);
 
-    const handleSave = () => {
+    const handleSave = async () => {
         try {
-            localStorage.setItem(STORAGE_KEY_STEPS, JSON.stringify(steps));
-            localStorage.setItem(STORAGE_KEY_DESCS, JSON.stringify(descriptions));
+            // 1. Save to LocalStorage
+            localStorage.setItem('leveling_guide_steps', JSON.stringify(steps));
+            localStorage.setItem('leveling_guide_descriptions', JSON.stringify(descriptions));
+
+            // 2. Save to Server
+            const allData = await fetchProcesses();
+            const updatedData = {
+                ...allData,
+                leveling_guide: {
+                    steps,
+                    descriptions
+                }
+            };
+            await saveProcesses(updatedData as any);
+
             setIsEditing(false);
-            alert('저장되었습니다.');
+            alert('서버에 저장되었습니다.');
         } catch (err) {
             console.error(err);
-            alert('저장 중 오류가 발생했습니다.');
+            alert('저장 중 오류가 발생했습니다: ' + (err instanceof Error ? err.message : String(err)));
         }
     };
 
