@@ -19,14 +19,35 @@ const Dashboard: React.FC = () => {
                     <h1 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--primary)' }}>G.H Tech</h1>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>클린룸 작업 관리 시스템</p>
                 </div>
-                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                        onClick={() => {
+                            if (window.confirm('서버의 최신 데이터를 강제로 불러오시겠습니까? (로컬 백업이 삭제됩니다.)')) {
+                                localStorage.clear();
+                                window.location.reload();
+                            }
+                        }}
+                        className="glass"
+                        style={{
+                            padding: '8px 12px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            color: '#E53E3E',
+                            border: '1px solid #E53E3E',
+                            background: 'white',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        최신 데이터 강제 로드
+                    </button>
                     <button
                         onClick={() => (window as any).forceSyncData?.()}
                         className="glass"
                         style={{
                             padding: '8px 12px',
                             borderRadius: '12px',
-                            fontSize: '12px',
+                            fontSize: '11px',
                             fontWeight: 'bold',
                             color: 'var(--primary)',
                             border: '1px solid var(--primary)',
@@ -34,9 +55,9 @@ const Dashboard: React.FC = () => {
                             cursor: 'pointer'
                         }}
                     >
-                        데이터 동기화
+                        동기화
                     </button>
-                    <Bell size={24} color="var(--text-muted)" />
+                    <Bell size={20} color="var(--text-muted)" />
                     <User size={24} color="var(--primary)" />
                 </div>
             </header>

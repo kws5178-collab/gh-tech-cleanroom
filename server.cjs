@@ -10,12 +10,18 @@ app.use(cors());
 app.use(express.json());
 
 // 데이터 경로 설정
-const DATA_FILE = fs.existsSync('/opt/render/project/src/src/data/processes.json')
-    ? '/opt/render/project/src/src/data/processes.json'
-    : path.join(__dirname, 'src', 'data', 'processes.json');
+const DATA_FILE = path.join(__dirname, 'src', 'data', 'processes.json');
 
-// API 라우트 우선 정의
-app.get('/api/processes', (req, res) => {
+// 캐시 방지 미들웨어
+const noCache = (req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    next();
+};
+
+// API 라우트 우선 정의 (캐시 비활성화 적용)
+app.get('/api/processes', noCache, (req, res) => {
     try {
         if (!fs.existsSync(DATA_FILE)) return res.json({});
         res.json(JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')));
@@ -24,7 +30,7 @@ app.get('/api/processes', (req, res) => {
     }
 });
 
-app.post('/api/processes', (req, res) => {
+app.post('/api/processes', noCache, (req, res) => {
     try {
         const dir = path.dirname(DATA_FILE);
         if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });

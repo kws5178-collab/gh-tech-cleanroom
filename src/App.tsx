@@ -75,25 +75,23 @@ const DataSync = () => {
 
         if (response.ok) {
           console.log('✅ Frontend data synced to server');
-          alert('수정사항 동기화 성공! 이제 메인 서버 배포가 진행됩니다.');
-          sessionStorage.setItem('sync_notified', 'true');
+          // alert('수정사항 동기화 성공! 이제 메인 서버 배포가 진행됩니다.');
+          // sessionStorage.setItem('sync_notified', 'true');
         } else {
           console.error('❌ Sync failed with status:', response.status);
-          if (manual) alert('서버 연결 실패 (Status: ' + response.status + '). npm run dev가 실행 중인지 확인해 주세요.');
+          if (manual) alert('서버 연결 실패 (Status: ' + response.status + ').');
         }
       } catch (err) {
         console.error('❌ Sync failed:', err);
-        if (manual) alert('동기화 중 오류가 발생했습니다. 터미널을 확인해 주세요.');
+        if (manual) alert('동기화 중 오류가 발생했습니다.');
       }
     };
 
     // 전역 함수 등록
     (window as any).forceSyncData = () => syncData(true);
 
-    // 자동 실행 (이미 알림 띄웠으면 스킵)
-    if (!sessionStorage.getItem('sync_notified')) {
-      syncData();
-    }
+    // 자동 실행 (백그라운드에서 조용히 실행)
+    syncData();
   }, []);
 
   return null;
