@@ -3,7 +3,7 @@ import { ProcessData } from '../data/processes';
 const API_URL = '/api/processes';
 
 export const fetchProcesses = async (): Promise<Record<string, ProcessData>> => {
-    const response = await fetch(API_URL);
+    const response = await fetch(`${API_URL}?t=${Date.now()}`);
     if (!response.ok) throw new Error('Failed to fetch processes');
     return response.json();
 };
@@ -13,6 +13,7 @@ export const saveProcesses = async (processes: Record<string, ProcessData>): Pro
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache'
         },
         body: JSON.stringify(processes),
     });
@@ -32,7 +33,7 @@ export const uploadImage = async (data: string, name: string, relatedId?: string
 };
 
 export const listImages = async (relatedId: string): Promise<string[]> => {
-    const response = await fetch(`/api/list-images/${relatedId}`);
+    const response = await fetch(`/api/list-images/${encodeURIComponent(relatedId)}?t=${Date.now()}`);
     if (!response.ok) return [];
     return response.json();
 };

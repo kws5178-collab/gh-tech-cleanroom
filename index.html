@@ -10,6 +10,9 @@
   <meta name="apple-mobile-web-app-title" content="G.H Tech">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/images/icon-192.png">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta name="theme-color" content="#1A3A5F">
   <style>
     /* Prevent printing */
@@ -19,7 +22,7 @@
       }
     }
 
-    /* Disable text selection */
+    /* Disable text selection but allow it on inputs */
     body {
       -webkit-touch-callout: none;
       -webkit-user-select: none;
@@ -27,6 +30,15 @@
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
+    }
+
+    input,
+    textarea {
+      -webkit-user-select: text;
+      -khtml-user-select: text;
+      -moz-user-select: text;
+      -ms-user-select: text;
+      user-select: text;
     }
 
     /* Watermark Overlay */

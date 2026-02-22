@@ -121,6 +121,10 @@ app.use((req, res, next) => {
     if (!req.path.startsWith('/api')) {
         const indexFile = path.join(distPath, 'index.html');
         if (fs.existsSync(indexFile)) {
+            // index.html도 캐시 방지 적용
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
             return res.sendFile(indexFile);
         }
     }
